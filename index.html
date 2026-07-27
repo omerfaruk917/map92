@@ -1,0 +1,1019 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#14283d">
+  <meta name="description" content="Interactive field-planning map for Notpla's Türkiye manufacturing qualification.">
+  <title>Türkiye Field Logistics Atlas · 917 Matter</title>
+  <style>
+    :root {
+      --navy: #14283d;
+      --navy-2: #203a53;
+      --paper: #f1eee5;
+      --card: #fffdf8;
+      --line: #d7d0c3;
+      --green: #3b725c;
+      --green-soft: #dbe7df;
+      --teal: #147d83;
+      --violet: #6355a5;
+      --orange: #d46a3a;
+      --muted: #667687;
+      --shadow: 0 22px 60px rgba(20, 40, 61, .12);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      min-height: 100%;
+      margin: 0;
+      background: var(--paper);
+      color: var(--navy);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, a { font: inherit; }
+    button { color: inherit; }
+
+    .app {
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: 18px;
+    }
+
+    .shell {
+      width: min(1540px, 100%);
+      min-height: calc(100vh - 36px);
+      min-height: calc(100dvh - 36px);
+      margin: 0 auto;
+      border: 1px solid rgba(20, 40, 61, .12);
+      border-radius: 28px;
+      background: rgba(255, 253, 248, .82);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 28px;
+      align-items: end;
+      padding: 28px 32px 24px;
+      border-bottom: 1px solid var(--line);
+      background:
+        radial-gradient(circle at 92% 0%, rgba(59, 114, 92, .16), transparent 25%),
+        var(--card);
+    }
+
+    .brand {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 18px;
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--navy);
+      color: #fff;
+      font-size: 12px;
+      letter-spacing: -.04em;
+    }
+
+    h1 {
+      max-width: 850px;
+      margin: 0;
+      font-size: clamp(35px, 4.1vw, 64px);
+      line-height: .98;
+      letter-spacing: -.055em;
+    }
+
+    .intro {
+      max-width: 720px;
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    .header-note {
+      width: min(330px, 100%);
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(241, 238, 229, .72);
+    }
+
+    .header-note strong {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: .11em;
+    }
+
+    .header-note p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .region-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 14px 18px;
+      overflow-x: auto;
+      scrollbar-width: thin;
+      border-bottom: 1px solid var(--line);
+      background: #ece8de;
+    }
+
+    .region-tab {
+      display: flex;
+      flex: 1 0 200px;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      min-width: 0;
+      padding: 13px 16px;
+      border: 1px solid transparent;
+      border-radius: 14px;
+      background: transparent;
+      cursor: pointer;
+      transition: background .2s ease, color .2s ease, transform .2s ease;
+    }
+
+    .region-tab:hover { transform: translateY(-1px); }
+    .region-tab[aria-selected="true"] {
+      background: var(--navy);
+      color: #fff;
+    }
+
+    .tab-name {
+      overflow: hidden;
+      font-weight: 750;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tab-number {
+      color: inherit;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      opacity: .65;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.75fr) minmax(330px, .75fr);
+      min-height: 650px;
+    }
+
+    .map-stage {
+      position: relative;
+      min-width: 0;
+      min-height: 650px;
+      background: #dbe5e2;
+    }
+
+    #map {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      overflow: hidden;
+      background:
+        linear-gradient(rgba(20, 40, 61, .04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(20, 40, 61, .04) 1px, transparent 1px),
+        #e5ece8;
+      background-size: 36px 36px;
+    }
+
+    .schematic-map {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    .landmass {
+      position: absolute;
+      inset: 5%;
+      border: 1px solid #789585;
+      background: rgba(219, 231, 223, .9);
+      filter: drop-shadow(0 10px 22px rgba(20, 40, 61, .06));
+    }
+
+    .route-segment {
+      position: absolute;
+      z-index: 3;
+      height: 0;
+      border-top-style: dashed;
+      border-top-width: 4px;
+      transform-origin: 0 50%;
+      pointer-events: none;
+    }
+    .route-segment.road { border-top-color: var(--orange); }
+    .route-segment.rail { border-top-color: var(--violet); border-top-style: dotted; }
+    .route-segment.sea { border-top-width: 5px; border-top-color: var(--teal); }
+
+    .schematic-route-label {
+      position: absolute;
+      z-index: 6;
+      padding: 5px 7px;
+      border: 1px solid rgba(20, 40, 61, .12);
+      border-radius: 7px;
+      background: rgba(255, 253, 248, .92);
+      color: var(--navy);
+      font-size: 9px;
+      font-weight: 800;
+      line-height: 1;
+      white-space: nowrap;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .map-marker {
+      position: absolute;
+      z-index: 8;
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      border: 3px solid #fff;
+      border-radius: 50%;
+      background: var(--orange);
+      color: #fff;
+      box-shadow: 0 7px 18px rgba(20, 40, 61, .25);
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 900;
+      transform: translate(-50%, -50%);
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+    .map-marker:hover, .map-marker:focus-visible {
+      z-index: 12;
+      outline: none;
+      box-shadow: 0 9px 26px rgba(20, 40, 61, .36);
+      transform: translate(-50%, -50%) scale(1.14);
+    }
+    .map-marker.gateway { border-radius: 8px; background: var(--teal); }
+    .map-marker.rail { border-radius: 8px; background: var(--violet); }
+
+    .context-map-label {
+      position: absolute;
+      z-index: 2;
+      color: rgba(20, 40, 61, .54);
+      font-size: 10px;
+      font-weight: 750;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .context-map-label.water {
+      color: rgba(20, 92, 108, .58);
+      font-size: 9px;
+      font-style: italic;
+    }
+
+    .map-popover {
+      position: absolute;
+      z-index: 20;
+      width: min(270px, calc(100% - 32px));
+      padding: 15px 17px;
+      border: 1px solid rgba(20, 40, 61, .13);
+      border-radius: 16px;
+      background: rgba(255, 253, 248, .98);
+      box-shadow: 0 18px 48px rgba(20, 40, 61, .2);
+      transform: translate(-50%, calc(-100% - 24px));
+    }
+    .map-popover[hidden] { display: none; }
+    .map-popover::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: -7px;
+      width: 14px;
+      height: 14px;
+      border-right: 1px solid rgba(20, 40, 61, .13);
+      border-bottom: 1px solid rgba(20, 40, 61, .13);
+      background: var(--card);
+      transform: translateX(-50%) rotate(45deg);
+    }
+    .popover-close {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: grid;
+      place-items: center;
+      width: 25px;
+      height: 25px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: var(--paper);
+      cursor: pointer;
+      font-weight: 800;
+    }
+    .popover-type {
+      margin: 0 25px 5px 0;
+      color: var(--green);
+      font-size: 9px;
+      font-weight: 850;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+    .popover-title {
+      margin: 0 24px 6px 0;
+      font-size: 15px;
+      letter-spacing: -.02em;
+    }
+    .popover-body {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.48;
+    }
+    .popover-status {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 5px 7px;
+      border-radius: 999px;
+      background: var(--green-soft);
+      color: var(--green);
+      font-size: 9px;
+      font-weight: 800;
+    }
+
+    .map-topbar {
+      position: absolute;
+      z-index: 500;
+      top: 18px;
+      left: 18px;
+      right: 18px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .region-chip {
+      max-width: 510px;
+      padding: 14px 16px;
+      border: 1px solid rgba(20, 40, 61, .14);
+      border-radius: 16px;
+      background: rgba(255, 253, 248, .94);
+      box-shadow: 0 12px 30px rgba(20, 40, 61, .13);
+      backdrop-filter: blur(10px);
+      pointer-events: auto;
+    }
+
+    .region-chip small {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--green);
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .region-chip strong {
+      display: block;
+      font-size: clamp(16px, 2vw, 23px);
+      letter-spacing: -.02em;
+    }
+
+    .map-actions {
+      display: flex;
+      gap: 7px;
+      padding: 5px;
+      border: 1px solid rgba(20, 40, 61, .14);
+      border-radius: 14px;
+      background: rgba(255, 253, 248, .94);
+      box-shadow: 0 12px 30px rgba(20, 40, 61, .13);
+      pointer-events: auto;
+    }
+
+    .map-action {
+      min-height: 38px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .map-action:hover, .map-action[aria-pressed="true"] {
+      background: var(--navy);
+      color: #fff;
+    }
+
+    .legend {
+      position: absolute;
+      z-index: 500;
+      left: 18px;
+      bottom: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      max-width: calc(100% - 36px);
+      padding: 10px 14px;
+      border: 1px solid rgba(20, 40, 61, .13);
+      border-radius: 13px;
+      background: rgba(255, 253, 248, .94);
+      box-shadow: 0 10px 28px rgba(20, 40, 61, .12);
+      font-size: 11px;
+      font-weight: 700;
+      pointer-events: none;
+    }
+
+    .legend span { display: flex; gap: 7px; align-items: center; }
+    .legend i { width: 24px; height: 3px; border-radius: 9px; }
+    .legend .candidate { width: 9px; height: 9px; border-radius: 50%; background: var(--orange); }
+    .legend .gateway { width: 9px; height: 9px; border-radius: 2px; background: var(--teal); }
+    .legend .rail { background: var(--violet); }
+    .legend .road { background: var(--orange); }
+    .legend .sea { background: var(--teal); }
+
+    .side-panel {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      background: var(--card);
+      border-left: 1px solid var(--line);
+    }
+
+    .panel-scroll {
+      flex: 1;
+      padding: 27px;
+      overflow: auto;
+    }
+
+    .eyebrow {
+      margin: 0 0 9px;
+      color: var(--green);
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: clamp(25px, 2.8vw, 38px);
+      line-height: 1.05;
+      letter-spacing: -.04em;
+    }
+
+    .thesis {
+      margin: 14px 0 24px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.62;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 26px;
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 13px 10px;
+      border-radius: 13px;
+      background: var(--paper);
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 20px;
+      letter-spacing: -.04em;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 3px;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .section-label {
+      margin: 25px 0 10px;
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    .node-list, .question-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .node-button {
+      display: grid;
+      grid-template-columns: 31px minmax(0, 1fr) auto;
+      gap: 10px;
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: #fff;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+    }
+
+    .node-button:hover, .node-button:focus-visible {
+      border-color: var(--green);
+      box-shadow: 0 8px 20px rgba(20, 40, 61, .08);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .node-index {
+      display: grid;
+      place-items: center;
+      width: 31px;
+      height: 31px;
+      border-radius: 50%;
+      background: var(--orange);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .node-index.gateway { border-radius: 8px; background: var(--teal); }
+    .node-index.rail { border-radius: 8px; background: var(--violet); }
+
+    .node-copy { min-width: 0; }
+    .node-copy strong {
+      display: block;
+      overflow: hidden;
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .node-copy span {
+      display: block;
+      margin-top: 4px;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 10px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .node-arrow {
+      align-self: center;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .question-list { counter-reset: question; }
+    .question-list li {
+      position: relative;
+      padding: 0 0 0 29px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      counter-increment: question;
+    }
+
+    .question-list li::before {
+      content: counter(question);
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: grid;
+      place-items: center;
+      width: 19px;
+      height: 19px;
+      border-radius: 50%;
+      background: var(--green-soft);
+      color: var(--green);
+      font-size: 9px;
+      font-weight: 900;
+    }
+
+    .panel-foot {
+      padding: 15px 27px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+    .loading-note {
+      position: absolute;
+      z-index: 0;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 980px) {
+      .header { grid-template-columns: 1fr; }
+      .header-note { display: none; }
+      .workspace { grid-template-columns: 1fr; }
+      .map-stage { min-height: 58vh; }
+      .side-panel { border-top: 1px solid var(--line); border-left: 0; }
+      .panel-scroll { overflow: visible; }
+      .shell { min-height: 0; }
+    }
+
+    @media (max-width: 640px) {
+      .app { padding: 0; }
+      .shell { min-height: 100dvh; border: 0; border-radius: 0; }
+      .header { padding: 24px 20px 20px; }
+      .brand { margin-bottom: 13px; }
+      .intro { font-size: 14px; }
+      .region-tabs { padding: 10px; }
+      .region-tab { flex-basis: 165px; padding: 11px 12px; }
+      .map-stage { min-height: 66vh; }
+      .map-topbar { top: 10px; left: 10px; right: 10px; }
+      .region-chip { max-width: calc(100% - 94px); padding: 11px 12px; }
+      .map-actions { flex-direction: column; }
+      .map-action { min-height: 32px; padding: 0 9px; font-size: 10px; }
+      .legend { left: 10px; bottom: 10px; max-width: calc(100% - 20px); }
+      .leaflet-control-zoom { display: none; }
+      .panel-scroll { padding: 24px 20px; }
+      .panel-foot { padding: 14px 20px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <main class="shell">
+      <header class="header">
+        <div>
+          <div class="brand">
+            <span class="brand-mark">917</span>
+            <span>917 Matter · Prepared for Notpla</span>
+          </div>
+          <h1>Türkiye field logistics atlas</h1>
+          <p class="intro">A simple view of where the field team will work, how Notpla-supplied material may reach each converter corridor, and how finished products may leave Türkiye.</p>
+        </div>
+        <aside class="header-note">
+          <strong>Phase 1 decision tool</strong>
+          <p>Starting points are shown for structured field comparison. No company, port or route is presented as pre-qualified.</p>
+        </aside>
+      </header>
+
+      <nav class="region-tabs" role="tablist" aria-label="Field regions">
+        <button class="region-tab" type="button" role="tab" data-region="marmara" aria-selected="true">
+          <span class="tab-name">İstanbul & Marmara</span><span class="tab-number">01</span>
+        </button>
+        <button class="region-tab" type="button" role="tab" data-region="aegean" aria-selected="false">
+          <span class="tab-name">İzmir & Aegean</span><span class="tab-number">02</span>
+        </button>
+        <button class="region-tab" type="button" role="tab" data-region="south" aria-selected="false">
+          <span class="tab-name">Gaziantep & South</span><span class="tab-number">03</span>
+        </button>
+      </nav>
+
+      <div class="workspace">
+        <section class="map-stage" aria-label="Interactive logistics map">
+          <div id="map"></div>
+          <div class="map-topbar">
+            <div class="region-chip">
+              <small id="region-kicker">Region 01 · Field corridor</small>
+              <strong id="region-map-title">İstanbul, Thrace & Safiport</strong>
+            </div>
+            <div class="map-actions" aria-label="Map controls">
+              <button class="map-action" id="routes-toggle" type="button" aria-pressed="true">Routes</button>
+              <button class="map-action" id="fit-map" type="button">Fit</button>
+            </div>
+          </div>
+          <div class="legend" aria-label="Map legend">
+            <span><i class="candidate"></i> Starting converter</span>
+            <span><i class="gateway"></i> Port / gateway</span>
+            <span><i class="rail"></i> Rail</span>
+            <span><i class="road"></i> Road</span>
+            <span><i class="sea"></i> Sea</span>
+          </div>
+        </section>
+
+        <aside class="side-panel" aria-live="polite">
+          <div class="panel-scroll">
+            <p class="eyebrow" id="panel-eyebrow">Field thesis · Region 01</p>
+            <h2 class="panel-title" id="panel-title">A dense candidate pool with several gateway options.</h2>
+            <p class="thesis" id="panel-thesis"></p>
+            <div class="metric-grid" id="metric-grid"></div>
+            <h3 class="section-label">Starting field set</h3>
+            <ul class="node-list" id="node-list"></ul>
+            <h3 class="section-label">Questions to close on site</h3>
+            <ol class="question-list" id="question-list"></ol>
+          </div>
+          <footer class="panel-foot">
+            Schematic planning view, not a freight quote or route guarantee. Final facilities, carriers, ports, slots, customs treatment and delivered costs will be verified during Phase 1.
+          </footer>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      const regions = {
+        marmara: {
+          kicker: "Region 01 · Field corridor",
+          mapTitle: "İstanbul, Thrace & Safiport",
+          title: "A dense candidate pool with several gateway options.",
+          thesis: "The Marmara field window tests the fastest access to a broad converter base. Safiport, Ambarlı and the rail corridor remain alternatives until live tariffs, train slots, last-mile conditions and the agreed destination are compared.",
+          bounds: [[40.55, 25.95], [42.05, 30.35]],
+          metrics: [["3", "converter leads"], ["2", "gateways"], ["3", "route modes"]],
+          land: [
+            [[42.05,25.95],[42.05,28.65],[41.75,28.95],[41.35,29.18],[41.07,29.05],[40.92,28.72],[40.72,27.95],[40.55,27.20],[40.55,25.95]],
+            [[40.55,27.05],[40.72,27.62],[40.86,28.52],[40.78,29.18],[40.62,30.35],[40.55,30.35]]
+          ],
+          context: [
+            { name: "Sea of Marmara", lat: 40.70, lng: 28.55, kind: "water" },
+            { name: "İstanbul", lat: 41.06, lng: 28.93, kind: "city" },
+            { name: "Thrace", lat: 41.38, lng: 27.25, kind: "place" }
+          ],
+          nodes: [
+            { id: "m1", name: "Orego · Esenyurt", short: "Folding-carton starting lead", type: "candidate", lat: 41.034, lng: 28.677, detail: "Starting point for capability, line-control, tooling and sample-readiness checks." },
+            { id: "m2", name: "Duran Doğan · Hadımköy", short: "Industrial converter lead", type: "candidate", lat: 41.151, lng: 28.621, detail: "Field evidence required for exact line ownership, certifications, format range and trial conditions." },
+            { id: "m3", name: "Göncay · Velimeşe", short: "Thrace converter lead", type: "candidate", lat: 41.279, lng: 27.879, detail: "Positioned for a Thrace and European-corridor comparison; not pre-qualified." },
+            { id: "m4", name: "Safiport Derince", short: "Sea–rail gateway option", type: "gateway", lat: 40.755, lng: 29.815, detail: "Possible material-entry and finished-goods gateway, subject to live service, handling and tariff checks." },
+            { id: "m5", name: "Köseköy terminal", short: "Rail freight node", type: "rail", lat: 40.753, lng: 30.006, detail: "Rail option to be tested against slots, equipment, transfer count and last-mile cost." },
+            { id: "m6", name: "Halkalı terminal", short: "European rail interface", type: "rail", lat: 41.033, lng: 28.781, detail: "Potential westbound rail interface; operating suitability requires confirmation." },
+            { id: "m7", name: "Kapıkule", short: "European land gateway", type: "gateway", lat: 41.717, lng: 26.351, detail: "Illustrative European corridor endpoint for rail and road comparison." }
+          ],
+          routes: [
+            { type: "road", label: "Factory access", points: [[41.034,28.677],[41.151,28.621],[41.279,27.879]] },
+            { type: "road", label: "Safiport last mile", points: [[40.755,29.815],[41.034,28.677]] },
+            { type: "rail", label: "European freight option", points: [[40.753,30.006],[41.033,28.781],[41.279,27.879],[41.717,26.351]] },
+            { type: "sea", label: "Sea → EU / UK", points: [[40.755,29.815],[40.35,28.9],[40.18,27.9]] }
+          ],
+          questions: [
+            "What are the delivered costs from Safiport and the best practical alternative to each shortlisted plant?",
+            "Are rail slots, equipment and last-mile arrangements workable for this material and finished-product profile?",
+            "Which converter can evidence the strongest small-sample control without overstating readiness?"
+          ]
+        },
+        aegean: {
+          kicker: "Region 02 · Field corridor",
+          mapTitle: "İzmir, Manisa & Aegean gateways",
+          title: "Export-oriented conversion close to multiple sea gateways.",
+          thesis: "The Aegean field window compares İzmir’s converter corridor with Alsancak and Aliağa port options. Proximity alone is not treated as an advantage: the team will test sample access, production scheduling, terminal choice and real factory-to-port cost.",
+          bounds: [[37.95, 26.65], [39.05, 27.75]],
+          metrics: [["3", "converter leads"], ["2", "port options"], ["1", "rail node"]],
+          land: [
+            [[39.05,26.64],[39.05,27.75],[37.95,27.75],[37.95,27.25],[38.12,27.16],[38.24,27.05],[38.42,26.98],[38.57,26.82],[38.77,26.90],[38.91,26.74]]
+          ],
+          context: [
+            { name: "Aegean Sea", lat: 38.35, lng: 26.78, kind: "water" },
+            { name: "İzmir", lat: 38.43, lng: 27.18, kind: "city" },
+            { name: "Manisa", lat: 38.63, lng: 27.43, kind: "place" }
+          ],
+          nodes: [
+            { id: "a1", name: "Artpack · Çiğli AOSB", short: "Northern İzmir lead", type: "candidate", lat: 38.505, lng: 27.057, detail: "Starting point for technical and commercial evidence collection; not pre-qualified." },
+            { id: "a2", name: "Canpak · İTOB / Menderes", short: "Export-oriented lead", type: "candidate", lat: 38.235, lng: 27.142, detail: "Field visit will test line suitability, sample access, quality systems and export operating experience." },
+            { id: "a3", name: "Superpak · Torbalı", short: "Southern corridor lead", type: "candidate", lat: 38.159, lng: 27.357, detail: "Candidate for like-for-like comparison of capability, cost, access and route practicality." },
+            { id: "a4", name: "İzmir Alsancak Port", short: "Sea–rail interface", type: "gateway", lat: 38.444, lng: 27.154, detail: "Potential sea gateway whose practical service, handling and congestion conditions require live confirmation." },
+            { id: "a5", name: "Aliağa / Nemrut Bay", short: "Alternative sea gateway", type: "gateway", lat: 38.804, lng: 26.944, detail: "Alternative port cluster for service and cost comparison against Alsancak." },
+            { id: "a6", name: "Kemalpaşa logistics node", short: "Rail-linked inland option", type: "rail", lat: 38.427, lng: 27.424, detail: "Rail-linked logistics option to be assessed against actual availability and last-mile conditions." }
+          ],
+          routes: [
+            { type: "road", label: "Aegean converter corridor", points: [[38.804,26.944],[38.505,27.057],[38.444,27.154],[38.235,27.142],[38.159,27.357]] },
+            { type: "rail", label: "Kemalpaşa interface", points: [[38.427,27.424],[38.444,27.154]] },
+            { type: "road", label: "Factory → port", points: [[38.159,27.357],[38.235,27.142],[38.444,27.154]] },
+            { type: "sea", label: "Sea → EU / UK", points: [[38.444,27.154],[38.48,26.65],[38.6,26.25]] }
+          ],
+          questions: [
+            "Which site offers the most controlled route to a small sample without compromising production scheduling?",
+            "Do Alsancak or Aliağa provide the better live service and delivered-cost case for the agreed destination?",
+            "Can each converter evidence tooling control, board handling, food-packaging quality systems and scale-up discipline?"
+          ]
+        },
+        south: {
+          kicker: "Region 03 · Field corridor",
+          mapTitle: "Gaziantep, Mersin & İskenderun",
+          title: "Industrial scale tested against a longer port leg.",
+          thesis: "Gaziantep may offer attractive industrial economics, but the case is only credible after inland transport, handling, damage risk and transit time are included. Mersin and İskenderun are therefore priced as separate route cases.",
+          bounds: [[36.25, 34.15], [37.55, 38.05]],
+          metrics: [["2", "converter leads"], ["2", "port options"], ["2", "route cases"]],
+          land: [
+            [[37.55,34.15],[37.55,38.05],[36.25,38.05],[36.25,36.12],[36.54,36.06],[36.70,35.72],[36.76,34.72],[36.54,34.15]]
+          ],
+          context: [
+            { name: "Eastern Mediterranean", lat: 36.40, lng: 34.85, kind: "water" },
+            { name: "Gaziantep", lat: 37.08, lng: 37.32, kind: "city" },
+            { name: "Çukurova", lat: 36.95, lng: 35.15, kind: "place" }
+          ],
+          nodes: [
+            { id: "s1", name: "Superpak · Gaziantep", short: "Primary regional lead", type: "candidate", lat: 37.061, lng: 37.381, detail: "Main regional starting point for technical, quality, cost and trial-access comparison." },
+            { id: "s2", name: "Aktif Karton cluster", short: "Reserve market coverage", type: "candidate", lat: 37.034, lng: 37.317, detail: "Secondary search cluster; exact facility and evidence must be confirmed before shortlisting." },
+            { id: "s3", name: "Başpınar", short: "Industrial rail node", type: "rail", lat: 37.154, lng: 37.242, detail: "Freight-node option to test for slot, equipment and intermodal feasibility." },
+            { id: "s4", name: "Mersin International Port", short: "Primary sea case", type: "gateway", lat: 36.773, lng: 34.651, detail: "Primary route case for live inland, terminal and sea-freight comparison." },
+            { id: "s5", name: "İskenderun ports", short: "Alternative sea case", type: "gateway", lat: 36.589, lng: 36.174, detail: "Alternative gateway case tested separately for service, handling, timing and cost." }
+          ],
+          routes: [
+            { type: "rail", label: "Existing freight option", points: [[37.154,37.242],[36.95,36.8],[36.85,35.7],[36.773,34.651]] },
+            { type: "road", label: "Mersin case", points: [[37.061,37.381],[36.75,36.35],[36.773,34.651]] },
+            { type: "road", label: "İskenderun case", points: [[37.061,37.381],[36.83,36.75],[36.589,36.174]] },
+            { type: "sea", label: "Sea → EU / UK", points: [[36.773,34.651],[36.45,33.8],[36.1,33.2]] }
+          ],
+          questions: [
+            "What is the complete delivered-cost and transit-time difference between the Mersin and İskenderun cases?",
+            "Does Başpınar offer a usable rail option for this load profile, equipment requirement and delivery window?",
+            "After the port leg is included, does Gaziantep still outperform the Marmara and Aegean alternatives?"
+          ]
+        }
+      };
+
+      const tabs = [...document.querySelectorAll(".region-tab")];
+      const mapElement = document.getElementById("map");
+      const nodeList = document.getElementById("node-list");
+      const questionList = document.getElementById("question-list");
+      const metricGrid = document.getElementById("metric-grid");
+      const title = document.getElementById("panel-title");
+      const thesis = document.getElementById("panel-thesis");
+      const eyebrow = document.getElementById("panel-eyebrow");
+      const mapTitle = document.getElementById("region-map-title");
+      const mapKicker = document.getElementById("region-kicker");
+      const routeToggle = document.getElementById("routes-toggle");
+      const fitButton = document.getElementById("fit-map");
+      let activeRegion = "marmara";
+      let routesVisible = true;
+
+      const toPercent = (point, bounds) => {
+        const [[south, west], [north, east]] = bounds;
+        const x = 6 + ((point[1] - west) / (east - west)) * 88;
+        const y = 7 + ((north - point[0]) / (north - south)) * 86;
+        return [Math.max(2, Math.min(98, x)), Math.max(2, Math.min(98, y))];
+      };
+
+      const polygonPoints = (shape, bounds) =>
+        shape.map(point => {
+          const [x, y] = toPercent(point, bounds);
+          return `${x.toFixed(2)}% ${y.toFixed(2)}%`;
+        }).join(",");
+
+      const routeMarkup = (route, bounds) => {
+        if (!routesVisible) return "";
+        const points = route.points.map(point => toPercent(point, bounds));
+        const segments = points.slice(0, -1).map((start, index) => {
+          const end = points[index + 1];
+          return `<i class="route-segment ${route.type}" data-x1="${start[0]}" data-y1="${start[1]}" data-x2="${end[0]}" data-y2="${end[1]}"></i>`;
+        }).join("");
+        const labelPoint = points[Math.floor((points.length - 1) / 2)];
+        const nextPoint = points[Math.min(points.length - 1, Math.floor((points.length - 1) / 2) + 1)];
+        const labelX = (labelPoint[0] + nextPoint[0]) / 2;
+        const labelY = (labelPoint[1] + nextPoint[1]) / 2;
+        return `${segments}<span class="schematic-route-label" style="left:${labelX}%;top:${labelY}%">${route.label}</span>`;
+      };
+
+      const sizeSegments = () => {
+        const rect = mapElement.getBoundingClientRect();
+        mapElement.querySelectorAll(".route-segment").forEach(segment => {
+          const x1 = Number(segment.dataset.x1) * rect.width / 100;
+          const y1 = Number(segment.dataset.y1) * rect.height / 100;
+          const x2 = Number(segment.dataset.x2) * rect.width / 100;
+          const y2 = Number(segment.dataset.y2) * rect.height / 100;
+          const dx = x2 - x1;
+          const dy = y2 - y1;
+          segment.style.left = `${x1}px`;
+          segment.style.top = `${y1}px`;
+          segment.style.width = `${Math.hypot(dx, dy)}px`;
+          segment.style.transform = `rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg)`;
+        });
+      };
+
+      const showPopover = (nodeId) => {
+        const region = regions[activeRegion];
+        const node = region.nodes.find(item => item.id === nodeId);
+        const marker = mapElement.querySelector(`[data-marker="${nodeId}"]`);
+        const popover = document.getElementById("map-popover");
+        if (!node || !marker || !popover) return;
+        popover.querySelector(".popover-type").textContent =
+          node.type === "candidate" ? "Starting converter" :
+          node.type === "rail" ? "Rail / logistics node" : "Port / gateway";
+        popover.querySelector(".popover-title").textContent = node.name;
+        popover.querySelector(".popover-body").textContent = node.detail;
+        popover.style.left = marker.style.left;
+        const markerTop = Number.parseFloat(marker.style.top);
+        popover.style.top = `${Math.max(29, markerTop)}%`;
+        popover.hidden = false;
+        marker.focus({ preventScroll: true });
+      };
+
+      const renderRegion = (key) => {
+        activeRegion = key;
+        const region = regions[key];
+
+        tabs.forEach(tab => tab.setAttribute("aria-selected", String(tab.dataset.region === key)));
+        eyebrow.textContent = region.kicker.replace("Field corridor", "Field thesis");
+        title.textContent = region.title;
+        thesis.textContent = region.thesis;
+        mapTitle.textContent = region.mapTitle;
+        mapKicker.textContent = region.kicker;
+
+        metricGrid.innerHTML = region.metrics.map(([value, label]) =>
+          `<div class="metric"><strong>${value}</strong><span title="${label}">${label}</span></div>`
+        ).join("");
+
+        nodeList.innerHTML = region.nodes.map((node, index) => `
+          <li>
+            <button class="node-button" type="button" data-node="${node.id}" aria-label="Show ${node.name} on map">
+              <span class="node-index ${node.type}">${index + 1}</span>
+              <span class="node-copy"><strong>${node.name}</strong><span>${node.short}</span></span>
+              <span class="node-arrow" aria-hidden="true">↗</span>
+            </button>
+          </li>
+        `).join("");
+
+        questionList.innerHTML = region.questions.map(question => `<li>${question}</li>`).join("");
+
+        const land = region.land.map(shape =>
+          `<div class="landmass" style="clip-path:polygon(${polygonPoints(shape, region.bounds)})"></div>`
+        ).join("");
+        const context = region.context.map(item => {
+          const [x, y] = toPercent([item.lat, item.lng], region.bounds);
+          return `<span class="context-map-label ${item.kind}" style="left:${x}%;top:${y}%">${item.name}</span>`;
+        }).join("");
+        const routes = region.routes.map(route => routeMarkup(route, region.bounds)).join("");
+        const markers = region.nodes.map((node, index) => {
+          const [x, y] = toPercent([node.lat, node.lng], region.bounds);
+          return `<button class="map-marker ${node.type}" type="button" data-marker="${node.id}" style="left:${x}%;top:${y}%" aria-label="Open ${node.name} details">${index + 1}</button>`;
+        }).join("");
+
+        mapElement.innerHTML = `
+          <div class="schematic-map">
+            ${land}${context}${routes}${markers}
+            <article class="map-popover" id="map-popover" hidden>
+              <button class="popover-close" type="button" aria-label="Close location details">×</button>
+              <p class="popover-type"></p>
+              <h3 class="popover-title"></h3>
+              <p class="popover-body"></p>
+              <span class="popover-status">To be verified in Phase 1</span>
+            </article>
+          </div>`;
+        sizeSegments();
+
+        mapElement.querySelectorAll("[data-marker]").forEach(marker => {
+          marker.addEventListener("click", () => showPopover(marker.dataset.marker));
+        });
+        mapElement.querySelector(".popover-close").addEventListener("click", event => {
+          event.currentTarget.closest(".map-popover").hidden = true;
+        });
+
+        nodeList.querySelectorAll("[data-node]").forEach(button => {
+          button.addEventListener("click", () => showPopover(button.dataset.node));
+        });
+      };
+
+      tabs.forEach(tab => tab.addEventListener("click", () => renderRegion(tab.dataset.region)));
+
+      routeToggle.addEventListener("click", () => {
+        routesVisible = !routesVisible;
+        routeToggle.setAttribute("aria-pressed", String(routesVisible));
+        renderRegion(activeRegion);
+      });
+
+      fitButton.textContent = "Reset";
+      fitButton.addEventListener("click", () => renderRegion(activeRegion));
+      window.addEventListener("resize", sizeSegments);
+
+      renderRegion(activeRegion);
+    })();
+  </script>
+</body>
+</html>
